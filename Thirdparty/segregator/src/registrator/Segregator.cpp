@@ -51,21 +51,23 @@ void Segregator::GobalRegistration(clipper::CertifiedTransformations &solutions)
     std::chrono::system_clock::time_point before_optim = std::chrono::system_clock::now();
     //LOG(INFO) << "Time for Gaussian transformation: " << std::chrono::duration_cast<std::chrono::milliseconds>(before_optim - start).count() << " ms";
 
-    Eigen::Matrix4d solution;
+    Eigen::Matrix4d solution;//好像没有被使用！
     clipper_ptr->solve_for_multiclass_with_cov(src_sem_vec, tgt_sem_vec,
                                                src_covariances, tgt_covariances,
                                                *src_matched_bg, *tgt_matched_bg,
-                                               src_bg_covariances, src_bg_covariances);
+                                               src_bg_covariances, src_bg_covariances);//搜索 clipper solve_for_multiclass_with_cov
     std::chrono::system_clock::time_point construct_c = std::chrono::system_clock::now();
     //LOG(INFO) << "Time for constructing clipper: " << std::chrono::duration_cast<std::chrono::milliseconds>(construct_c - before_optim).count() << " ms";
-    clipper_ptr->solve();
+    clipper_ptr->solve();//clipper源码
 
 #ifdef TEST_RUNTIME
     static double total_time_pose = 0;
     static double total_count_pose = 0;
     std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
 #endif
+    //拿到所有的点和点的匹配关系 然后使用gtam解算位姿 然后返回所有的候选位姿
     clipper_ptr->getTransformationMatrix(solutions);
+
 #ifdef TEST_RUNTIME
     std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
     double time_used = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1).count() * 1000;

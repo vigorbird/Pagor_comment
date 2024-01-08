@@ -43,6 +43,7 @@ namespace gtsam{
     }
 }
 
+//这个函数没有被使用！！！
 inline void solveBySVD(Eigen::MatrixXd &src, Eigen::MatrixXd &tgt, Eigen::Matrix4d &T) {
     // src: 3 x N, tgt: 3 x N
     Eigen::MatrixXd src_mean = src.rowwise().mean();

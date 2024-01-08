@@ -66,6 +66,7 @@ namespace clipper {
     }
 
     // ----------------------------------------------------------------------------
+    //这个是clipper源码
     void CLIPPER::scorePairwiseConsistency(const Data &D1, const Data &D2,
                                            const Association &A) {
         //createAffinityMatrix, for each point in D1, construct a relationship with each point in D2, and then construct a matrix (D1.size()*D2.size()) x 2
@@ -127,7 +128,8 @@ namespace clipper {
         }
     }
 
-
+    //这个不是clipper源码
+    //clipper solve_for_multiclass_with_cov
     void CLIPPER::solve_for_multiclass_with_cov(const std::vector <pcl::PointCloud<pcl::PointXYZ>> &src_cloud_vec,
                                                 const std::vector <pcl::PointCloud<pcl::PointXYZ>> &tgt_cloud_vec,
                                                 const Covariances &src_covariances,
@@ -222,8 +224,11 @@ namespace clipper {
         total_count++;
         LOG(INFO) << "scorePairwiseConsistencyGaussian time: " << time_used << " avg time: " << total_time / total_count << " ms";
 #endif
-    }
+    }//end function  solve_for_multiclass_with_cov
 
+
+
+    //这个不是clipper 源码
     void CLIPPER::scorePairwiseConsistencyGaussian(const Data &D1, const Data &D2, const Association &A,
                                                    const Covariances &src_covariances_matched,
                                                    const Covariances &tgt_covariances_matched) {
@@ -297,7 +302,9 @@ namespace clipper {
     }
 
     // ----------------------------------------------------------------------------
+    
 
+    //clipper源码
     void CLIPPER::solve(const Eigen::VectorXd &_u0) {
 
 #ifdef TEST_RUNTIME
@@ -314,7 +321,7 @@ namespace clipper {
             u0 = _u0;
         }
         solns_.resize(invariant_->get_nb_num());
-        findDenseClique(u0);
+        findDenseClique(u0);//clipper源码
 #ifdef TEST_RUNTIME
         std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
         double time_used = std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1).count() * 1000;
@@ -348,6 +355,7 @@ namespace clipper {
 
     // ----------------------------------------------------------------------------
 
+    //所有行A_, 选择哪一行solns_[i]！
     Associations CLIPPER::getSelectedAssociations() {
         Associations vA;
         vA.resize(invariant_->get_nb_num());
@@ -506,7 +514,7 @@ namespace clipper {
                     break;
             }
         }
-    }
+    }//end function CLIPPER::findDenseClique
 
     void CLIPPER::transform2Solution(const Eigen::VectorXd &u, double F, int i,
                                      const std::chrono::high_resolution_clock::time_point &t1,
@@ -571,7 +579,9 @@ namespace clipper {
         }
     }
 
+    //拿到所有的点和点的匹配关系 然后使用gtam解算位姿 然后返回所有的候选位姿
     void CLIPPER::getTransformationMatrix(CertifiedTransformations &transformations) {
+    //不是clipp的源码
         const clipper::Associations vA = getSelectedAssociations();
         transformations.resize(vA.size());
         for (int candi = 0; candi < vA.size(); ++candi) {

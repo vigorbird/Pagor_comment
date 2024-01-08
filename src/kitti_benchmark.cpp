@@ -14,13 +14,14 @@ namespace pagor {
         std::string config_path = project_path + "/configs/" + config_name;
         LOG(INFO) << "config_path: " << config_path;
         config_node_ = YAML::LoadFile(config_path);
-        kitti_loader_ptr_ = std::make_shared<KittiLoader>(config_path, downsample);
+        kitti_loader_ptr_ = std::make_shared<KittiLoader>(config_path, downsample);//加载kitti数据的路径
         LOG(INFO) << "KittiLoader initialized";
         segregator_ptr_ = std::make_shared<Segregator>(config_path, false);
         LOG(INFO) << "Segregator initialized";
         Run();
     }
 
+    //
     void kitti_benchmark::Run() {
         std::map<int, PoseArray> &poses_map = kitti_loader_ptr_->poses_map;
         std::map<int, std::map<std::string, std::vector<std::pair<int, int>>>> &data_map = kitti_loader_ptr_->data_map;
@@ -54,13 +55,14 @@ namespace pagor {
                     clipper::CertifiedTransformations pose_candidates;
                     Eigen::Matrix4d best_pose = Eigen::Matrix4d::Identity();
                     if (segregator_ptr_->use_clipper) {
-                        segregator_ptr_->reset(0.2, 5);
+                        segregator_ptr_->reset(0.2, 5);//搜索 void reset(double noise_level = -1.0, double distribution_noise_level = -1.0);
+                        //更新 srcRaw tgtRaw 两个点云数据
                         segregator_ptr_->LoadPCDLabFromFiles(src_path, tgt_path, src_label_path,
                                                              tgt_label_path); // takes 11ms
                         t2 = std::chrono::steady_clock::now();
-                        segregator_ptr_->GobalRegistration(pose_candidates);
+                        segregator_ptr_->GobalRegistration(pose_candidates);//非常重要的函数！！！！！！！！！！！！！！！！！！！！！
                         t3 = std::chrono::steady_clock::now();
-                        best_pose = segregator_ptr_->SelectBestPose(pose_candidates);
+                        best_pose = segregator_ptr_->SelectBestPose(pose_candidates);//非常重要的函数！！！！！！！！！！！！！！！！
 
                         //LOG(INFO) << "best_pose: \n" << best_pose;
                         //LOG(INFO) << "pose_gt: \n" << pose_gt;
@@ -87,7 +89,7 @@ namespace pagor {
                     //LOG(INFO) << "Load time: " << std::chrono::duration_cast<std::chrono::duration<double>>(t2 - t1).count() * 1000 << "ms";
                     //LOG(INFO) << "Solver time: " << std::chrono::duration_cast<std::chrono::duration<double>>(t3 - t2).count() * 1000 << "ms";
 
-                    Eigen::Matrix4d pose_diff = best_pose.inverse() * pose_gt;
+                    Eigen::Matrix4d pose_diff = best_pose.inverse() * pose_gt;//优化出来的结果和真值进行比较
                     double distance = sqrt(pose_diff(0, 3) * pose_diff(0, 3) + pose_diff(1, 3) * pose_diff(1, 3) +
                                            pose_diff(2, 3) * pose_diff(2, 3));
                     Eigen::Matrix3d rot_diff = pose_diff.block<3, 3>(0, 0);
@@ -148,7 +150,9 @@ namespace pagor {
                           << " Reg time: " << total_reg_time / total << "ms"
                           << " Vote time: " << total_vote_time / total << "ms";
             }
-        }
+        }//end for 读取kitti数据
+
+
         // print result
         for (auto &result: result_map) {
             int seq = result.first;
@@ -159,5 +163,6 @@ namespace pagor {
                 LOG(INFO) << "Seq: " << seq << " " << hardness << " Succ ratio: " << succ_ratio;
             }
         }
-    }
+
+    }//end function run
 }

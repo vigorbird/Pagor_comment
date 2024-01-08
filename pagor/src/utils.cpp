@@ -14,7 +14,7 @@
 #include "clipper/clipper.h"
 #include "clipper/utils.h"
 
-
+//来源于 clipper源码
 namespace clipper {
     namespace utils {
 
@@ -84,7 +84,7 @@ namespace clipper {
                 Ainliers.row(i) = A.row(soln.nodes[i]);
             }
             return Ainliers;
-        }
+        }//
 
     } // ns utils
 } // ns clipper

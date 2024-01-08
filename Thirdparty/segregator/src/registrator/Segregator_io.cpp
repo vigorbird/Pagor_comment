@@ -137,7 +137,7 @@ void Segregator::LoadPCDLabFromFiles(std::string src_path, std::string tgt_path,
     *srcRaw = *getCloud(src_path);
     *tgtRaw = *getCloud(tgt_path);
 
-    merge_label(src_label_path, srcRaw, srcSemanticPc, -1);
+    merge_label(src_label_path, srcRaw, srcSemanticPc, -1);//搜索 merge_label实现
     merge_label(tgt_label_path, tgtRaw, tgtSemanticPc, label_deter_rate);
 }
 

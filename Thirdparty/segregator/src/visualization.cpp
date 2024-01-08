@@ -50,9 +50,10 @@ pcl::PointCloud<PointType>::ConstPtr getCloud(std::string filename) {
 * @param[in]  label_file_path; raw_point_cloud; out_semantic_pc
 * @return     None.
 */
+//merge_label实现
 void merge_label(const string label_file_path,
-                 pcl::PointCloud<PointType>::Ptr raw_pc,
-                 pcl::PointCloud<PointL>::Ptr semantic_pc,
+                 pcl::PointCloud<PointType>::Ptr raw_pc,//输入参数
+                 pcl::PointCloud<PointL>::Ptr semantic_pc,//输出参数
                  double label_deter_rate) {
 
     // read label file

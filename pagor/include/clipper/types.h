@@ -15,7 +15,7 @@ namespace clipper {
     using SpMat = Eigen::SparseMatrix<double>;
     using SpTriplet = Eigen::Triplet<double>;
 
-    using Association = Eigen::Matrix<int, Eigen::Dynamic, 2>;
+    using Association = Eigen::Matrix<int, Eigen::Dynamic, 2>;//所有匹配关系
     using Associations = std::vector<Association>;
     using Affinity = Eigen::MatrixXd;
     using Constraint = Eigen::MatrixXd;
