@@ -70,7 +70,7 @@ void Segregator::LoadConfig(std::string config_file) {
     vegetation_min_cluster_dist = config_node_["vegetation_param"]["min_dist"].as<double>();
     vegetation_min_point_num = config_node_["vegetation_param"]["min_num"].as<int>();
     vegetation_max_point_num = config_node_["vegetation_param"]["max_num"].as<int>();
-    use_veg = config_node_["vegetation_param"]["use_veg"].as<bool>();
+    use_veg = config_node_["vegetation_param"]["use_veg"].as<bool>();//默认值是false
     use_DCVC_veg = config_node_["vegetation_param"]["use_DCVC"].as<bool>();
     veg_minSeg = config_node_["vegetation_param"]["DCVC_min_num"].as<int>();
 
@@ -136,8 +136,9 @@ void Segregator::LoadPCDLabFromFiles(std::string src_path, std::string tgt_path,
 
     *srcRaw = *getCloud(src_path);
     *tgtRaw = *getCloud(tgt_path);
-
-    merge_label(src_label_path, srcRaw, srcSemanticPc, -1);//搜索 merge_label实现
+    
+    //srcSemanticPc = 输出参数
+    merge_label(src_label_path, srcRaw, srcSemanticPc, -1);//搜索 merge_label实现 将点云的label进行复制
     merge_label(tgt_label_path, tgtRaw, tgtSemanticPc, label_deter_rate);
 }
 

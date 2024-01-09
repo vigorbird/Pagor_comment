@@ -82,6 +82,8 @@ public:
         reg_method_ = RegularizationMethod::NONE;
     }
 
+    //selectSemanticPoints 1
+    //只选择设定的label
     bool selectSemanticPoints(pcl::PointCloud<PointL>::Ptr input_sem_cloud) {
         sem_cloud_in = input_sem_cloud;
 
@@ -100,6 +102,7 @@ public:
         return true;
     }
 
+    //
     bool selectSemanticPoints(pcl::PointCloud<PointL>::Ptr input_src_sem_cloud,
                               pcl::PointCloud<PointL>::Ptr input_tgt_sem_cloud) {
         for (int i = 0; i < input_src_sem_cloud->points.size(); i++) {
@@ -305,7 +308,7 @@ public:
     // following code for dynamic voxel segmentation
     bool segmentPointCloud(pcl::PointCloud<PointL>::Ptr input_sem_cloud) {
         // pointCloudL -> pointCloud
-        if (!selectSemanticPoints(input_sem_cloud)) {
+        if (!selectSemanticPoints(input_sem_cloud)) {//搜索 selectSemanticPoints 1， 会修改input_sem_cloud数据
             ROS_ERROR("Select semantic points failed!");
             return false;
         } else {

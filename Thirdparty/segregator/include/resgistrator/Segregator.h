@@ -55,7 +55,7 @@ public:
     int building_class_num;
     double building_min_cluster_dist;
     int building_min_point_num, building_max_point_num;
-    bool use_building;
+    bool use_building;//默认值是true
     bool use_DCVC_building;
     int building_minSeg;
 

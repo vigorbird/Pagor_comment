@@ -140,7 +140,7 @@ namespace clipper {
                                                 const Covariances &tgt_matched_covariances) {
 
         // src_cloud_vec contains point clouds of multiple categories, each category has multiple Gaussian distributions
-        int total_corres_size = 0;
+        int total_corres_size = 0;//target + sourrce点的数量 + src teaser匹配上的点的数量
         int src_node_size = 0;
         int tgt_node_size = 0;
         for (int i = 0; i < src_cloud_vec.size(); i++) {
@@ -151,12 +151,12 @@ namespace clipper {
         }
         //LOG(INFO) << "src_node_size: " << src_node_size << " tgt_node_size: " << tgt_node_size << " total_corres_size: " << total_corres_size;
         //            << " src_fpfh: " << src_matched_cloud.points.size() << " tgt_fpfh: " << tgt_matched_cloud.points.size();
-        total_corres_size += src_matched_cloud.points.size();
-
+        total_corres_size += src_matched_cloud.points.size();//这个应该是teaser匹配上的点的数量
         A_ = Eigen::MatrixXi::Zero(total_corres_size, 2);
+
         src_raw_ = Eigen::Matrix3Xd::Zero(3, src_node_size + src_matched_cloud.points.size());
         tgt_raw_ = Eigen::Matrix3Xd::Zero(3, tgt_node_size + tgt_matched_cloud.points.size());
-        Covariances src_covariances_matched;
+        Covariances src_covariances_matched;// = 原始点云数量 + teaser匹配的数量
         Covariances tgt_covariances_matched;
         //merge src_covariances and src_matched_covariances
         src_covariances_matched.insert(src_covariances_matched.end(), src_covariances.begin(), src_covariances.end());
@@ -356,6 +356,7 @@ namespace clipper {
     // ----------------------------------------------------------------------------
 
     //所有行A_, 选择哪一行solns_[i]！
+    //依赖类成员变量：solns_：最终得到的匹配关系, A_：所有可能的匹配关系
     Associations CLIPPER::getSelectedAssociations() {
         Associations vA;
         vA.resize(invariant_->get_nb_num());
@@ -580,9 +581,10 @@ namespace clipper {
     }
 
     //拿到所有的点和点的匹配关系 然后使用gtam解算位姿 然后返回所有的候选位姿
+    //依赖的的类成员变量为 src_raw_，tgt_raw_， solns_：最终得到的匹配关系, A_：所有可能的匹配关系
     void CLIPPER::getTransformationMatrix(CertifiedTransformations &transformations) {
-    //不是clipp的源码
-        const clipper::Associations vA = getSelectedAssociations();
+        //不是clipp的源码
+        const clipper::Associations vA = getSelectedAssociations();//std::vector<Association> Associations;Association = Eigen::Matrix<int, Eigen::Dynamic, 2>
         transformations.resize(vA.size());
         for (int candi = 0; candi < vA.size(); ++candi) {
             const clipper::Association Ain = vA[candi];
@@ -612,6 +614,7 @@ namespace clipper {
         //}
     }
 
+    //这个函数好像没有被使用！
     Eigen::Matrix4d
     CLIPPER::getTransformationMatrix(const Eigen::Matrix3Xd &D1, const Eigen::Matrix3Xd &D2, const Association &A) {
         Eigen::Matrix3Xd corres_A = Eigen::Matrix3Xd::Zero(3, A.rows());

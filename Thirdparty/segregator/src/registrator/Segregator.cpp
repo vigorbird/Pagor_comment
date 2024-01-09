@@ -43,17 +43,17 @@ Eigen::Matrix4d Segregator::GobalRegistration() {
 void Segregator::GobalRegistration(clipper::CertifiedTransformations &solutions) {
 
     std::chrono::system_clock::time_point start = std::chrono::system_clock::now();
-    TransToGaussian(srcSemanticPc, src_sem_vec, src_covariances);
+    TransToGaussian(srcSemanticPc, src_sem_vec, src_covariances);//将点云进行聚类， 然后对每个聚类计算高斯分布
     TransToGaussian(tgtSemanticPc, tgt_sem_vec, tgt_covariances);
 
-    TransToGaussianBg(src_matched_bg, src_bg_covariances, tgt_matched_bg, tgt_bg_covariances);
+    TransToGaussianBg(src_matched_bg, src_bg_covariances, tgt_matched_bg, tgt_bg_covariances);//计算点云的描述子
 
     std::chrono::system_clock::time_point before_optim = std::chrono::system_clock::now();
     //LOG(INFO) << "Time for Gaussian transformation: " << std::chrono::duration_cast<std::chrono::milliseconds>(before_optim - start).count() << " ms";
 
     Eigen::Matrix4d solution;//好像没有被使用！
     clipper_ptr->solve_for_multiclass_with_cov(src_sem_vec, tgt_sem_vec,
-                                               src_covariances, tgt_covariances,
+                                               src_covariances, tgt_covariances,//这四个参数是
                                                *src_matched_bg, *tgt_matched_bg,
                                                src_bg_covariances, src_bg_covariances);//搜索 clipper solve_for_multiclass_with_cov
     std::chrono::system_clock::time_point construct_c = std::chrono::system_clock::now();
@@ -66,6 +66,7 @@ void Segregator::GobalRegistration(clipper::CertifiedTransformations &solutions)
     std::chrono::steady_clock::time_point t1 = std::chrono::steady_clock::now();
 #endif
     //拿到所有的点和点的匹配关系 然后使用gtam解算位姿 然后返回所有的候选位姿
+    //solutions是返回值
     clipper_ptr->getTransformationMatrix(solutions);
 
 #ifdef TEST_RUNTIME
@@ -149,6 +150,7 @@ Eigen::Matrix4d Segregator::SelectBestPose(const clipper::CertifiedTransformatio
     pcl::PointCloud<PointType>::Ptr downsampled_src(new pcl::PointCloud <PointType>);
     pcl::PointCloud<PointType>::Ptr downsampled_tgt(new pcl::PointCloud <PointType>);
     pcl::VoxelGrid <PointType> sor;
+    //首先对src和target进行voxel降采样
     sor.setInputCloud(srcRaw);
     sor.setLeafSize(leaf_size, leaf_size, leaf_size);
     sor.filter(*downsampled_src);
@@ -158,6 +160,7 @@ Eigen::Matrix4d Segregator::SelectBestPose(const clipper::CertifiedTransformatio
 
     const double search_radius = 1.0;
     // compute the chamfer distance
+    //使用降采样之后的target点云建立kdtree
     pcl::search::KdTree<PointType>::Ptr tree(new pcl::search::KdTree <PointType>);
     tree->setInputCloud(downsampled_tgt);
     Eigen::Matrix4d best_pose = Eigen::Matrix4d::Identity();
@@ -167,10 +170,12 @@ Eigen::Matrix4d Segregator::SelectBestPose(const clipper::CertifiedTransformatio
             continue;
         double score = 0.0, dist;
         Eigen::Matrix4d &pose = cer_trans.first;
+        //将降采样的src点云根据candidate pose变换到世界坐标系下
         pcl::transformPointCloud(*downsampled_src, *transformed_src, pose);
         for (int i = 0; i < transformed_src->size(); ++i) {
             std::vector<int> pointIdxNKNSearch;
             std::vector<float> pointNKNSquaredDistance;
+            //搜索哪个点距离target点最近，把最近的距离的累加当做score
             tree->radiusSearch(transformed_src->points[i], search_radius, pointIdxNKNSearch, pointNKNSquaredDistance,
                                1);
             dist = pointIdxNKNSearch.size() == 0 ? search_radius : pointNKNSquaredDistance[0];
@@ -193,13 +198,13 @@ void Segregator::TransToGaussian(pcl::PointCloud<PointL>::Ptr semanticPc,
     //  clouds nodes
     pcl::PointCloud<PointType>::Ptr CarCloud(new pcl::PointCloud <PointType>);
     std::vector <Eigen::Matrix3d> car_covariances;
-    if (use_car) {
+    if (use_car) {//默认参数是true
         clusterManager car_node;
         car_node.reset(car_params);
         if (!use_DCVC_car) {
             car_node.dbscanSeg(semanticPc);
         } else {
-            car_node.segmentPointCloud(semanticPc);
+            car_node.segmentPointCloud(semanticPc);//默认进入这个条件 搜索 selectSemanticPoints 1，根据设定的label筛选点云
         }
         car_node.computeCentroidAndCov(CarCloud, car_covariances);
         sem_vec.emplace_back(*CarCloud);
@@ -208,13 +213,13 @@ void Segregator::TransToGaussian(pcl::PointCloud<PointL>::Ptr semanticPc,
 
     pcl::PointCloud<PointType>::Ptr TrunkCloud(new pcl::PointCloud <PointType>);
     std::vector <Eigen::Matrix3d> trunk_covariances;
-    if (use_trunk) {
+    if (use_trunk) {//默认参数是true
         clusterManager trunk_node;
         trunk_node.reset(trunk_params);
         if (!use_DCVC_trunk) {
             trunk_node.dbscanSeg(semanticPc);
         } else {
-            trunk_node.segmentPointCloud(semanticPc);
+            trunk_node.segmentPointCloud(semanticPc);//默认进入这个条件
         }
         trunk_node.computeCentroidAndCov(TrunkCloud, trunk_covariances);
         sem_vec.emplace_back(*TrunkCloud);
@@ -236,7 +241,8 @@ void Segregator::TransToGaussianBg(pcl::PointCloud<PointType>::Ptr src_matched_b
     std::vector <Eigen::Matrix3d> src_building_covariances;
     pcl::PointCloud<PointType>::Ptr tgtBuildingCloud(new pcl::PointCloud <PointType>);
     std::vector <Eigen::Matrix3d> tgt_building_covariances;
-
+    
+    //默认会进入这个选项
     if (use_building) {
         clusterManager building_node;
         building_node.reset(building_params);
@@ -255,6 +261,7 @@ void Segregator::TransToGaussianBg(pcl::PointCloud<PointType>::Ptr src_matched_b
         }
     }
 
+    //默认不会进入这个选项
     if (use_veg) {
         clusterManager veg_node;
         veg_node.reset(veg_params);
