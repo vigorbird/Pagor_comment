@@ -8,20 +8,25 @@
 
 namespace clipper {
 
+    //WassersteinDistanceRelax::operator 1
+    //ai bi 第一个匹配关系
+    //aj bj第二个匹配关系
     bool WassersteinDistanceRelax::operator()(const Datum &ai, const Datum &aj, const Datum &bi, const Datum &bj,
-                                              const Covariance &cov_ai, const Covariance &cov_aj,
-                                              const Covariance &cov_bi, const Covariance &cov_bj,
+                                              const Covariance &cov_ai, const Covariance &cov_aj,//第一个匹配关系对应的协方差
+                                              const Covariance &cov_bi, const Covariance &cov_bj,//第二个匹配关系对应的协方差
                                               std::vector<double> &vec_c) {
 
 
         // distance between two points in the same cloud
-        const double l1 = (ai - aj).norm();
-        const double l2 = (bi - bj).norm();
+        const double l1 = (ai - aj).norm();//第一个图的距离
+        const double l2 = (bi - bj).norm();//第二个图的距离
 
-        Covariance cov_l1 = cov_ai + cov_aj;
+        Covariance cov_l1 = cov_ai + cov_aj;//
         Covariance cov_l2 = cov_bi + cov_bj;
         // enforce minimum distance criterion -- if points in the same dataset
         // are too close, then this pair of associations cannot be selected
+        //params_.mindist 默认值 = 0
+        //默认不会进入这个条件
         if (params_.mindist > 0 && (l1 < params_.mindist || l2 < params_.mindist)) {
             return false;
         }
@@ -35,7 +40,7 @@ namespace clipper {
         vec_c.resize(nb_num);
         for (int i = 0; i < nb_num; ++i) {
             double prob;
-            double beta = 2 * params_.epsilon_vec[i];
+            double beta = 2 * params_.epsilon_vec[i];//epsilon_vec = [ 0.01, 0.02, 0.04, 0.08 ]
             if (s1 < beta && s2 < beta) {
                 double s = std::min(s1, s2);
                 //prob = std::exp(-0.5 * (s1 * s1 + s2 * s2) / (params_.sigma * params_.sigma));

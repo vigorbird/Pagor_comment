@@ -41,12 +41,14 @@ namespace clipper {
             //for (const auto &epsilon : epsilon_vec) {
             //    LOG(INFO) << epsilon;
             //}
-        } else if (metric_name == "WASSERSTEIN_RELAXED") {
+        } else if (metric_name == "WASSERSTEIN_RELAXED") {//非常重要的函数！！！！！！！ 默认使用这种方式进行图匹配
             double sigma = metric_node["sigma"].as<double>();
+
             std::vector<double> epsilon_vec;
             for (const auto &epsilon: metric_node["noise_level_list"]) {
                 epsilon_vec.push_back(epsilon.as<double>());
             }
+
             std::vector<double> cov_eps_vec;
             for (const auto &cov_eps: metric_node["cov_thd_list"]) {
                 cov_eps_vec.push_back(cov_eps.as<double>());
@@ -113,6 +115,8 @@ namespace clipper {
                 }
             }
         }
+
+
         vM_.resize(invariant_->get_nb_num());
         vC_.resize(invariant_->get_nb_num());
         for (size_t i = 0; i < invariant_->get_nb_num(); ++i) {
@@ -126,10 +130,11 @@ namespace clipper {
             //把非零元素都变成1
             vC_[i].coeffs() = 1;
         }
-    }
+    }//end function scorePairwiseConsistency
 
     //这个不是clipper源码
     //clipper solve_for_multiclass_with_cov
+    //详见算法实现文档
     void CLIPPER::solve_for_multiclass_with_cov(const std::vector <pcl::PointCloud<pcl::PointXYZ>> &src_cloud_vec,
                                                 const std::vector <pcl::PointCloud<pcl::PointXYZ>> &tgt_cloud_vec,
                                                 const Covariances &src_covariances,
@@ -140,7 +145,7 @@ namespace clipper {
                                                 const Covariances &tgt_matched_covariances) {
 
         // src_cloud_vec contains point clouds of multiple categories, each category has multiple Gaussian distributions
-        int total_corres_size = 0;//target + sourrce点的数量 + src teaser匹配上的点的数量
+        int total_corres_size = 0;//target * sourrce点的数量 + src teaser匹配上的点的数量
         int src_node_size = 0;
         int tgt_node_size = 0;
         for (int i = 0; i < src_cloud_vec.size(); i++) {
@@ -154,10 +159,10 @@ namespace clipper {
         total_corres_size += src_matched_cloud.points.size();//这个应该是teaser匹配上的点的数量
         A_ = Eigen::MatrixXi::Zero(total_corres_size, 2);
 
-        src_raw_ = Eigen::Matrix3Xd::Zero(3, src_node_size + src_matched_cloud.points.size());
-        tgt_raw_ = Eigen::Matrix3Xd::Zero(3, tgt_node_size + tgt_matched_cloud.points.size());
-        Covariances src_covariances_matched;// = 原始点云数量 + teaser匹配的数量
-        Covariances tgt_covariances_matched;
+        src_raw_ = Eigen::Matrix3Xd::Zero(3, src_node_size + src_matched_cloud.points.size());//source原始点云 + src teaser匹配点云
+        tgt_raw_ = Eigen::Matrix3Xd::Zero(3, tgt_node_size + tgt_matched_cloud.points.size());//target原始点云 + target teaser匹配点云
+        Covariances src_covariances_matched;// = source原始点云协方差 +  src teaser匹配点云
+        Covariances tgt_covariances_matched;// = target 原始点云协方差 + target teaser匹配点云
         //merge src_covariances and src_matched_covariances
         src_covariances_matched.insert(src_covariances_matched.end(), src_covariances.begin(), src_covariances.end());
         src_covariances_matched.insert(src_covariances_matched.end(), src_matched_covariances.begin(),
@@ -172,13 +177,13 @@ namespace clipper {
         //<< " src_matched_covariances size: " << src_matched_covariances.size() << " tgt_matched_covariances size: " << tgt_matched_covariances.size();
 
         int index = 0;// index through the whole matched vector
-        int class_num = src_cloud_vec.size();
+        int class_num = src_cloud_vec.size();//原始点云所有的分类
         int src_index = 0;
         int tgt_index = 0;
         for (int class_indx = 0; class_indx < class_num; ++class_indx) {
             Eigen::MatrixX3d src_mat;
             Eigen::MatrixX3d tgt_mat;
-            pcl2mat(src_cloud_vec[class_indx], src_mat);
+            pcl2mat(src_cloud_vec[class_indx], src_mat);//是一个行矩阵
             pcl2mat(tgt_cloud_vec[class_indx], tgt_mat);
             src_raw_.block(0, src_index, 3, src_mat.rows()) = src_mat.transpose();
             tgt_raw_.block(0, tgt_index, 3, tgt_mat.rows()) = tgt_mat.transpose();
@@ -215,7 +220,7 @@ namespace clipper {
         //for (int i = 0; i < A_.rows(); ++i) {
         //LOG(INFO) << "src: " << src_raw_.col(A_(i, 0)).transpose() << " tgt: " << tgt_raw_.col(A_(i, 1)).transpose();
         //}
-
+        //very important function!!!!!!!
         scorePairwiseConsistencyGaussian(src_raw_, tgt_raw_, A_, src_covariances_matched, tgt_covariances_matched);
 #ifdef TEST_RUNTIME
         std::chrono::steady_clock::time_point t2 = std::chrono::steady_clock::now();
@@ -229,6 +234,7 @@ namespace clipper {
 
 
     //这个不是clipper 源码
+    //最终是为了更新vC_变量 vC_矩阵大小是全量匹配关系的结果
     void CLIPPER::scorePairwiseConsistencyGaussian(const Data &D1, const Data &D2, const Association &A,
                                                    const Covariances &src_covariances_matched,
                                                    const Covariances &tgt_covariances_matched) {
@@ -237,11 +243,11 @@ namespace clipper {
         if (A.size() == 0) A_ = utils::createAllToAll(D1.cols(), D2.cols());
         else A_ = A;
         //get the number of all possible matches
-        const size_t m = A_.rows();
+        const size_t m = A_.rows();//所有可能的匹配对，两个图的全排列
 
         // There is need to add parallelization here, otherwise it will be slower
-        std::vector <Eigen::MatrixXd> vM;
-        vM.resize(invariant_->get_nb_num());
+        std::vector <Eigen::MatrixXd> vM;//存储的应该是每层对应的adjacency matrix 
+        vM.resize(invariant_->get_nb_num());//
         for (size_t i = 0; i < invariant_->get_nb_num(); ++i) {
             vM[i] = Eigen::MatrixXd::Zero(m, m);
         }
@@ -250,9 +256,9 @@ namespace clipper {
         //adjacency matrix M has m*m elements in total, and half of them without diagonal is m*(m-1)/2 elements, so the number of cycles here is m*(m-1)/2
         for (size_t k = 0; k < m * (m - 1) / 2; ++k) {
             //upper triangular matrix row and column number
-            size_t i, j;
+            size_t i, j;//
             //k2ij function is to convert k into i and j, and the range of i and j is 0~m-1
-            std::tie(i, j) = utils::k2ij(k, m);
+            std::tie(i, j) = utils::k2ij(k, m);//给i和j赋值，根据adjacency matrix的索引，计算得到对应的A_矩阵中的匹配索引
 
             //if two pairs of matches contain the same point, then the consistency of this pair of matches is not calculated, because one point can only match one point
             if (A_(i, 0) == A_(j, 0) || A_(i, 1) == A_(j, 1)) {
@@ -262,12 +268,14 @@ namespace clipper {
 
             // Evaluate the consistency of geometric invariants associated with ei, ej
             // points to extract invariant from in D1
+            //第一个匹配关系中，两个图中的分别对应的元素
             const auto &d1i = D1.col(A_(i, 0));
-            const auto &d1j = D1.col(A_(j, 0));
+            const auto &d1j = D1.col(A_(j, 0));//
             //// points to extract invariant from in D2
+            //第二个匹配关系中，两个图中分别对应元素
             const auto &d2i = D2.col(A_(i, 1));
             const auto &d2j = D2.col(A_(j, 1));
-
+            //四个元素分别对应的协方差矩阵
             const auto &cov1i = src_covariances_matched[A_(i, 0)];
             const auto &cov1j = src_covariances_matched[A_(j, 0)];
             const auto &cov2i = tgt_covariances_matched[A_(i, 1)];
@@ -275,31 +283,36 @@ namespace clipper {
 
             //compute the second-order distance
             std::vector<double> vec_c;
+            //在作者默认参数设置下，一定会返回成功，返回的vec_c是不同层级的距离置信度，如果概率小于某个层级的置信度，则概率为0
             const bool succ = (*invariant_)(d1i, d1j, d2i, d2j,
                                             cov1i, cov1j, cov2i, cov2j,
-                                            vec_c);
+                                            vec_c);//搜索 WassersteinDistanceRelax::operator 1
             // sparsity-promoting threshold for affinities
             for (size_t k = 0; k < vec_c.size(); ++k) {
+                //affinityeps = 作者默认设置参数为1e-4
                 if (vec_c[k] > params_.affinityeps && succ) {
                     vM[k](i, j) = vec_c[k];
                 }
             }
         }
+
+
         vM_.resize(invariant_->get_nb_num());
         vC_.resize(invariant_->get_nb_num());
         for (size_t i = 0; i < invariant_->get_nb_num(); ++i) {
             //saveMatrixXdToTextFile(vM[i], "vM_" + std::to_string(i) + ".txt");
-            vM_[i] = vM[i].sparseView();
+            vM_[i] = vM[i].sparseView();//eigen官方函数 
         }
+        //vM_是局部变零，本质是要更新vC_变量
         //C is a sparse matrix with two parts
         //nonzero entries: sorted by column, format (value, row), value is the value in M, and row is the row number in M
         //outer pointers: the first element of each column is the position in nonzero entries
         for (size_t i = 0; i < invariant_->get_nb_num(); ++i) {
             vC_[i] = vM_[i];
             //把非零元素都变成1
-            vC_[i].coeffs() = 1;
+            vC_[i].coeffs() = 1;//eigen SparseMatrix数据类型 将所有非零元素全部赋值为1
         }
-    }
+    }//end function scorePairwiseConsistencyGaussian
 
     // ----------------------------------------------------------------------------
     
@@ -514,7 +527,8 @@ namespace clipper {
                 if (relax == vM_.size())
                     break;
             }
-        }
+        }//end for (i = 0; i < params_.maxoliters; ++i) {
+
     }//end function CLIPPER::findDenseClique
 
     void CLIPPER::transform2Solution(const Eigen::VectorXd &u, double F, int i,

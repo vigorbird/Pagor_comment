@@ -17,11 +17,11 @@ namespace clipper {
     class WassersteinDistanceRelax : public PairwiseInvariant {
     public:
         struct Params {
-            double sigma = 0.01; ///< spread / "variance" of exponential kernel
-            std::vector<double> epsilon_vec; ///< bound on consistency score, determines if inlier/outlier 5.54*sigma with 99.999% confidence
-            std::vector<double> cov_eps_vec;
+            double sigma = 0.01; //对应外部yaml文件sigma字段 /< spread / "variance" of exponential kernel 默认设置是0.2
+            std::vector<double> epsilon_vec; //对应外部yaml文件 noise_level_list 字段   /< bound on consistency score, determines if inlier/outlier 5.54*sigma with 99.999% confidence
+            std::vector<double> cov_eps_vec; //对应外部yaml文件 cov_thd_list 字段
             double mindist = 0; ///< minimum allowable distance between inlier points in the same dataset
-            bool small_to_large = true;
+            bool small_to_large = true;//作者默认设置是ture
         };
         int nb_num;
     public:
@@ -29,9 +29,9 @@ namespace clipper {
                 : params_(params) {
             nb_num = params_.epsilon_vec.size();
             // from large to small
-            if (params_.small_to_large) {
+            if (params_.small_to_large) {//作者默认设置是true
+                std::sort(params_.cov_eps_vec.begin(), params_.cov_eps_vec.end());//按照从小到大进行排序
                 std::sort(params_.epsilon_vec.begin(), params_.epsilon_vec.end());
-                std::sort(params_.cov_eps_vec.begin(), params_.cov_eps_vec.end());
             } else {
                 std::sort(params_.epsilon_vec.begin(), params_.epsilon_vec.end(), std::greater<double>());
                 std::sort(params_.cov_eps_vec.begin(), params_.cov_eps_vec.end(), std::greater<double>());
