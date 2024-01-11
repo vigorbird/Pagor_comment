@@ -170,8 +170,8 @@ namespace clipper {
 
         // \brief Problem data from latest instance of data association
         std::vector<Solution> solns_; ///< solution information from CLIPPER dense clique solver
-        std::vector<SpAffinity> vM_; ///< affinity matrix (i.e., weighted consistency graph)
-        std::vector<SpConstraint> vC_; ///< constraint matrix (i.e., prevents forming links)
+        std::vector<SpAffinity> vM_; ///< affinity matrix (i.e., weighted consistency graph) SpAffinity = Eigen::SparseMatrix<double>
+        std::vector<SpConstraint> vC_; ///< constraint matrix (i.e., prevents forming links) SpConstraint = Eigen::SparseMatrix<double>
 
         /**
          * @brief      Identifies a dense clique of an undirected graph G from its

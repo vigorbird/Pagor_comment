@@ -301,7 +301,7 @@ namespace clipper {
         vC_.resize(invariant_->get_nb_num());
         for (size_t i = 0; i < invariant_->get_nb_num(); ++i) {
             //saveMatrixXdToTextFile(vM[i], "vM_" + std::to_string(i) + ".txt");
-            vM_[i] = vM[i].sparseView();//eigen官方函数 
+            vM_[i] = vM[i].sparseView();//eigen官方函数 非常重要！！！更新了类的成员变量！！！！
         }
         //vM_是局部变零，本质是要更新vC_变量
         //C is a sparse matrix with two parts
@@ -310,7 +310,7 @@ namespace clipper {
         for (size_t i = 0; i < invariant_->get_nb_num(); ++i) {
             vC_[i] = vM_[i];
             //把非零元素都变成1
-            vC_[i].coeffs() = 1;//eigen SparseMatrix数据类型 将所有非零元素全部赋值为1
+            vC_[i].coeffs() = 1;//eigen SparseMatrix数据类型 将所有非零元素全部赋值为1 非常重要！！！更新了类的成员变量！！！！
         }
     }//end function scorePairwiseConsistencyGaussian
 
@@ -425,7 +425,7 @@ namespace clipper {
         // Initialization
         //
 
-        const size_t n = vM_[0].cols();
+        const size_t n = vM_[0].cols();//vM_是adjacency matrix
         const Eigen::VectorXd ones = Eigen::VectorXd::Ones(n);
 
         // initialize memory
@@ -438,8 +438,12 @@ namespace clipper {
         Eigen::VectorXd den(n);
 
         // one step of power method to have a good scaling of u
+        //rescale_u0默认等于true
+        //vM_和vC_元素里面的数据类型都是Eigen::SparseMatrix<double>
         if (params_.rescale_u0) {
-            u = vM_[0].selfadjointView<Eigen::Upper>() * u0 + u0;
+            //it should use the entries in the upper triangular part of mat and fill the lower triangular part to make the matrix self-adjoint. 
+            //好像就是上三角矩阵
+            u = vM_[0].selfadjointView<Eigen::Upper>() * u0 + u0;//
         } else {
             u = u0;
         }
@@ -462,6 +466,7 @@ namespace clipper {
 
         size_t i, j, k; // iteration counters
         size_t relax = 0; // relaxation counter
+        //maxoliters = 默认等于1000
         for (i = 0; i < params_.maxoliters; ++i) {
 
             const SpAffinity &M_ = vM_[relax];
@@ -472,6 +477,7 @@ namespace clipper {
             F = u.dot(gradF); // current objective value
 
             // Orthogonal projected gradient ascent
+            //maxiniters 默认值等于200
             for (j = 0; j < params_.maxiniters; ++j) {
                 double alpha = 1;
 
@@ -504,6 +510,7 @@ namespace clipper {
                 gradF = gradFnew;
 
                 // check if desired accuracy has been reached by gradient ascent
+                //tol_u = 1e-8  tol_F=1e-9
                 if (deltau < params_.tol_u || std::abs(deltaF) < params_.tol_F) break;
             }
 
@@ -512,7 +519,7 @@ namespace clipper {
             //
 
             Cbu = ones * u.sum() - C_.selfadjointView<Eigen::Upper>() * u - u;
-            const Eigen::VectorXi idxD = ((Cbu.array() > params_.eps) && (u.array() > params_.eps)).cast<int>();
+            const Eigen::VectorXi idxD = ( (Cbu.array() > params_.eps) && (u.array() > params_.eps) ).cast<int>();
             if (idxD.sum() > 0) {
                 Mu = M_.selfadjointView<Eigen::Upper>() * u + u;
                 num = utils::selectFromIndicator(Mu, idxD);
@@ -522,9 +529,9 @@ namespace clipper {
                 d += deltad;
 
             } else {
-                transform2Solution(u, F, i, t1, relax);
+                transform2Solution(u, F, i, t1, relax);//得到最终的匹配关系
                 relax++;
-                if (relax == vM_.size())
+                if (relax == vM_.size())//vM_.size = 层级的个数 默认等于4
                     break;
             }
         }//end for (i = 0; i < params_.maxoliters; ++i) {
