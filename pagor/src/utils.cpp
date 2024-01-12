@@ -32,7 +32,7 @@ namespace clipper {
             using T = std::pair<double, int>; // pair value to be compared and index
             if (k < 1) return {}; // invalid input
             // n.b., the top of this queue is smallest element
-            std::priority_queue <T, std::vector<T>, std::greater<T>> q;
+            std::priority_queue <T, std::vector<T>, std::greater<T>> q;//按顺序从小到进行输出
             for (size_t i = 0; i < x.rows(); ++i) {
                 if (q.size() < k) {
                     q.push({x(i), i});
