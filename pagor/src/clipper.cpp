@@ -418,6 +418,7 @@ namespace clipper {
     // Private Methods
     // ----------------------------------------------------------------------------
 
+    //整个函数代码 只有最后break那句话不同，其他代码完全和clipper一致！！！！！
     void CLIPPER::findDenseClique(const Eigen::VectorXd &u0) {
         const auto t1 = std::chrono::high_resolution_clock::now();
 
@@ -441,7 +442,7 @@ namespace clipper {
         //rescale_u0默认等于true
         //vM_和vC_元素里面的数据类型都是Eigen::SparseMatrix<double>
         if (params_.rescale_u0) {
-            //it should use the entries in the upper triangular part of mat and fill the lower triangular part to make the matrix self-adjoint. 
+            //fyy comment it should use the entries in the upper triangular part of mat and fill the lower triangular part to make the matrix self-adjoint. 
             //好像就是上三角矩阵
             u = vM_[0].selfadjointView<Eigen::Upper>() * u0 + u0;//
         } else {
@@ -450,13 +451,17 @@ namespace clipper {
         u /= u.norm();
 
         // initial value of d
+        //same
         double d = 0; // zero if there are no active constraints
+        //same
         Eigen::VectorXd Cbu = ones * u.sum() - vC_[0].selfadjointView<Eigen::Upper>() * u - u;
-        const Eigen::VectorXi idxD = ((Cbu.array() > params_.eps) && (u.array() > params_.eps)).cast<int>();
+        //eps = 1e-9
+        //Cbu.array() > params_.eps 表示每个元素表示对应位置上的元素是否大于 0，返回的是一个bool数组
+        const Eigen::VectorXi idxD = ( (Cbu.array() > params_.eps) && (u.array() > params_.eps) ).cast<int>();
         if (idxD.sum() > 0) {
-            Mu = vM_[0].selfadjointView<Eigen::Upper>() * u + u;
-            num = utils::selectFromIndicator(Mu, idxD);
-            den = utils::selectFromIndicator(Cbu, idxD);
+            Mu = vM_[0].selfadjointView<Eigen::Upper>() * u + u;//
+            num = utils::selectFromIndicator(Mu, idxD);//从idxD中选择等于1的索引对应的Mu值
+            den = utils::selectFromIndicator(Cbu, idxD);//从idxD中选择等于1的索引对应的Cbu值
             d = (num.array() / den.array()).mean();
         }
 
@@ -529,10 +534,11 @@ namespace clipper {
                 d += deltad;
 
             } else {
+                //如果clipper代码的话
                 transform2Solution(u, F, i, t1, relax);//得到最终的匹配关系
                 relax++;
                 if (relax == vM_.size())//vM_.size = 层级的个数 默认等于4
-                    break;
+                    break;//非常重要！！！退出总的优化循环！！！
             }
         }//end for (i = 0; i < params_.maxoliters; ++i) {
 

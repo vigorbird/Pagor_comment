@@ -64,6 +64,11 @@ namespace clipper {
             return {i - 1, j - 1};
         }
 
+        //ind 维度 = u的维度
+        //ind [0 1 0 1 1 0 0]
+        //x = [2 3 4 5 6 7 8]
+        //从ind中选择等于1的索引对应的x值
+        //y = [3 5 6]
         Eigen::VectorXd selectFromIndicator(const Eigen::VectorXd &x,
                                             const Eigen::VectorXi &ind) {
             Eigen::VectorXd y(ind.sum());
